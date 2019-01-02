@@ -367,7 +367,8 @@ void CEditorImpl::Update()
 		IEditorGame* pEditorGame = m_pGameEngine->GetIEditorGame();
 		if (pEditorGame != nullptr)
 		{
-			pEditorGame->UpdateHelpers();
+			auto* pActiveViewport = GetActiveDisplayViewport();
+			pEditorGame->UpdateHelpers(pActiveViewport ? pActiveViewport->GetHelperSettings().enabled : false);
 		}
 	}
 
@@ -666,14 +667,18 @@ CBaseObject* CEditorImpl::CloneObject(CBaseObject* obj)
 	return GetObjectManager()->CloneObject(obj);
 }
 
-void CEditorImpl::StartObjectCreation(const char* type, const char* file)
+bool CEditorImpl::StartObjectCreation(const char* type, const char* file /*= nullptr*/)
 {
 	if (!GetDocument()->IsDocumentReady())
-		return;
+	{
+		return false;
+	}
 
 	CObjectCreateTool* tool = new CObjectCreateTool();
 	GetIEditorImpl()->GetLevelEditorSharedState()->SetEditTool(tool);
 	tool->SelectObjectToCreate(type, file);
+
+	return true;
 }
 
 CBaseObject* CEditorImpl::GetSelectedObject()
