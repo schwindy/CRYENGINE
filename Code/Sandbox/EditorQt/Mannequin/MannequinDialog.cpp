@@ -1211,9 +1211,7 @@ void CMannequinDialog::Update()
 {
 	if (m_bPreviewFileLoaded)
 	{
-		// PERSONAL DEBUG PERSONAL CRYTEK: Moving fragmentBrowser update here due to crash on editor launch.
-		// Sometimes idle_update is called before this is setup and dies. Maybe related to .cryproject not being in root folder?
-		m_wndFragmentBrowser->Update();	
+		m_wndFragmentBrowser->Update();
 		m_wndFragmentEditorPage.Update();
 		m_wndPreviewerPage.Update();
 		m_wndTransitionEditorPage.Update();
