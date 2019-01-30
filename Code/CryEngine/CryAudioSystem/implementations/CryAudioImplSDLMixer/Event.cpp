@@ -15,14 +15,10 @@ namespace Impl
 namespace SDL_mixer
 {
 //////////////////////////////////////////////////////////////////////////
-ERequestStatus CEvent::Execute(IObject* const pIObject, TriggerInstanceId const triggerInstanceId)
+ETriggerResult CEvent::Execute(IObject* const pIObject, TriggerInstanceId const triggerInstanceId)
 {
-	ERequestStatus status = ERequestStatus::Failure;
-
 	auto const pObject = static_cast<CObject*>(pIObject);
-	status = SoundEngine::ExecuteEvent(pObject, this, triggerInstanceId);
-
-	return status;
+	return SoundEngine::ExecuteEvent(pObject, this, triggerInstanceId);
 }
 
 //////////////////////////////////////////////////////////////////////////

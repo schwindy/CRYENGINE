@@ -84,6 +84,7 @@ struct SResourceLayout
 #endif
 };
 
+<<<<<<< HEAD
 static ILINE void EscapeString(string& inout)
 {
 	static const char chars[] = { '%' };
@@ -102,6 +103,23 @@ static ILINE void EscapeString(string& inout)
 		}
 	}
 }
+=======
+namespace DeviceResources_Internal
+{
+ILINE void EscapeStringForCStyleFormatting(string& stringToEscape)
+{
+	size_t offset = 0;
+	while (true)
+	{
+		offset = stringToEscape.find('%', offset);
+		if (offset == string::npos)
+			break;
+		stringToEscape.replace(offset, 1, "%%");
+		offset += strlen("%%");
+	}
+}
+}
+>>>>>>> cd3a9e0b428ccab2ccbd152a782a476cc92701da
 
 class CDeviceResource
 {
@@ -117,11 +135,17 @@ public:
 
 	inline void SetDebugName(const char* name) const
 	{
+<<<<<<< HEAD
 		// PERSONAL CRYTEK:
 		// Debug str may be something like this: "%ENGINE%/EngineAssets/Textures/Cursor_Green.dds"
 		// The %'s cause vsprintf to crash, needs escaping. Copid from SimpleHttpServerListener.cpp since I can't find other existing methods/conventions.
 		string escapedStr = name;
 		EscapeString(escapedStr);
+=======
+		using namespace DeviceResources_Internal;
+		string escapedStr = name;
+		EscapeStringForCStyleFormatting(escapedStr);
+>>>>>>> cd3a9e0b428ccab2ccbd152a782a476cc92701da
 		::SetDebugName(m_pNativeResource, escapedStr.c_str());
 	}
 
