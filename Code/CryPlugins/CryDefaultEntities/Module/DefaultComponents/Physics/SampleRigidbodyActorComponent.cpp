@@ -46,6 +46,19 @@ void CSampleActorComponent::ReflectType(Schematyc::CTypeDesc<CSampleActorCompone
 
 int CSampleActorComponent::g_numActors = 0;
 
+/**
+ * Handle PhysicalWorld Event: OnPostStep
+ *
+ * This method will retrieve the Entity/Component that matches our EventPhysPostStep Foreign Data. If the retrieved
+ * Entity is of type `PE_WALKING_RIGID`, this method will invoke its `OnPostStep` method.
+ *
+ * A "step" in Physics is the moment the Engine moves all Entities that requested movement since the last step.
+ *
+ * This method is invoked automatically by the PhysicalWorld Event System after adding an Event Listener.
+ * @example gEnv->pPhysicalWorld->AddEventClient(EventPhysPostStep::id, (int(*)(const EventPhys*))OnPostStepWalking, 0);
+ *
+ * @param epps | EventPhysPostStep | A `EventPhysPostStep` Pointer
+ */
 int OnPostStepWalking(const EventPhysPostStep *epps)
 {
 	if (epps->iForeignData == PHYS_FOREIGN_ID_ENTITY && epps->pEntity->GetType() == PE_WALKINGRIGID)
@@ -54,12 +67,22 @@ int OnPostStepWalking(const EventPhysPostStep *epps)
 	return 1;
 }
 
+/**
+ * Construct a CSampleActorComponent
+ *
+ * This method will add a PhysicalWorld Event Listener for `EventPhysPostStep`, using `OnPostStepWalking` as a callback
+ */
 CSampleActorComponent::CSampleActorComponent()
 {
 	if (!g_numActors++)
 		gEnv->pPhysicalWorld->AddEventClient(EventPhysPostStep::id, (int(*)(const EventPhys*))OnPostStepWalking, 0);
 }
 
+/**
+ * Deconstruct a CSampleActorComponent
+ *
+ * This method will De-Physicalize the Entity and remove the PhysicalWorld Event Listener for `EventPhysPostStep`
+ */
 CSampleActorComponent::~CSampleActorComponent()
 {
 	SEntityPhysicalizeParams pp;
@@ -69,6 +92,17 @@ CSampleActorComponent::~CSampleActorComponent()
 		gEnv->pPhysicalWorld->RemoveEventClient(EventPhysPostStep::id, (int(*)(const EventPhys*))OnPostStepWalking, 0);
 }
 
+/**
+ * Handle PhysicalWorld Event: OnPostStepWalkingRigid
+ *
+ * This method uses two user-defined velocities, `m_velMove` and `m_velJump`, to modify the velocity of the Entity,
+ * causing it to move in response to keyboard inputs. The user-defined velocities are modified according to the Ground
+ * Slope and will inherit from Ground Velocity.
+ *
+ * @note This method is invoked by `CSampleActorComponent::OnPostStepWalking`
+ *
+ * @param epps | EventPhysPostStep | A `EventPhysPostStep` Pointer
+ */
 int CSampleActorComponent::OnPostStep(const EventPhysPostStep *epps)
 {
 	// immediate post step; is called directly from the physics thread
@@ -129,6 +163,38 @@ int CSampleActorComponent::OnPostStep(const EventPhysPostStep *epps)
 	return 1;
 }
 
+/**
+ * Physicalize the Entity as WalkingRigid
+ *
+ * This method will Physicalize this Entity by creating/attaching a WalkingRigid PhysicalEntity.
+ *
+ * @note This Entity is using an Editor Mesh Collider Component, configured via the Sandbox. If you are building custom
+ * C++ logic using this class, you will need to specify additional parameters to your PhysicalEntity. Without doing
+ * this, your Entity will not work properly.
+ *
+ * @example Set `pe_player_dimensions`
+    pe_player_dimensions ppdim;
+    ppdim.bUseCapsule = 1;
+    ppdim.sizeCollider = Vec3(0.225f, 1.f, 0.4675f);
+    ppdim.groundContactEps = 0.004f;
+    ppdim.heightPivot = 0;
+    ppdim.heightCollider = 0.4675f;
+    pent->SetParams(&ppdim, 1);
+
+ * @example Set `pe_player_dynamics`
+    pe_player_dynamics ppdyn;
+    ppdyn.kAirControl = 0.f;
+    ppdyn.kAirResistance = 0.2f;
+    ppdyn.kInertia = 8.f;
+    ppdyn.kInertiaAccel = 0.f;
+    ppdyn.mass = 80.0f;
+    ppdyn.maxClimbAngle = 50.0_degrees.ToDegrees();
+    ppdyn.maxJumpAngle = 50.0_degrees.ToDegrees();
+    ppdyn.minFallAngle = 80.0_degrees.ToDegrees();
+    ppdyn.minSlideAngle = 70.0_degrees.ToDegrees();
+    ppdyn.maxVelGround = 16.f;
+    pent->SetParams(&ppdyn, 1);
+ */
 void CSampleActorComponent::Physicalize()
 {
 	SEntityPhysicalizeParams epp;
@@ -154,6 +220,21 @@ void CSampleActorComponent::Physicalize()
 	m_velJump.zero();
 }
 
+/**
+ * Setup WalkingRigid Actor Legs
+ *
+ * This method configures and initializes the "legs" of our WalkingRigid Entity.
+ *
+ * @note The "legs" of a WalkingRigid Entity work by using `pe_params_sensors` to cast a ray directly down (-z) from
+ * the Entity. This ray is used to determine which Object (if any) this Entity is currently standing on.
+ *
+ * @note Without invoking this method after Physicalization, the Entity will be stuck in a "free-fall" state which will
+ * not work as intended. If you are experiencing an issue where `pe_status_living::pGroundCollider` is always `nullptr`
+ * in `OnPostStep`, be sure to verify that this method has been invoked after Physicalization and that the `dir`
+ * variable in this method contains a negative `z` value.
+ *
+ * @param immediately | Determines if the operation should occur immediately
+ */
 void CSampleActorComponent::SetupLegs(bool immediately)
 {
 	if (m_pEntity->GetPhysics())
@@ -169,6 +250,11 @@ void CSampleActorComponent::SetupLegs(bool immediately)
 	}
 }
 
+/**
+ * Handle User Input
+ *
+ * This method will execute a `pe_action_awake` on this Entity, and is called whenever there is a change to User Inputs.
+ */
 void CSampleActorComponent::OnInput()
 {
 	if (m_pEntity->GetPhysics() && m_velMove.len2() + m_velJump.len2())
