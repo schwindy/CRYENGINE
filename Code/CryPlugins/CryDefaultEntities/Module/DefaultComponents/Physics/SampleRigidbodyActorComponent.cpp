@@ -169,9 +169,11 @@ int CSampleActorComponent::OnPostStep(const EventPhysPostStep *epps)
  *
  * This method will Physicalize this Entity by creating/attaching a WalkingRigid PhysicalEntity.
  *
- * @note This Entity is using an Editor Mesh Collider Component, configured via the Sandbox. If you are building custom
- * C++ logic using this class, you will need to specify additional parameters to your PhysicalEntity. Without doing
- * this, your Entity will not work properly.
+ * This Component assumes that Geometries have been added by other means. An example of adding Geometry would be
+ * adding a Mesh Collider Component to this Entity via the Sandbox. Characters can also have pre-defined Geometries.
+ *
+ * If you would prefer to not use Geometries and instead use a `pe_living` Entity Style, you can specify these
+ * additional parameters to your Physical Entity to apply a general collider:
  *
  * @example Set `pe_player_dimensions`
     pe_player_dimensions ppdim;
@@ -181,20 +183,6 @@ int CSampleActorComponent::OnPostStep(const EventPhysPostStep *epps)
     ppdim.heightPivot = 0;
     ppdim.heightCollider = 0.4675f;
     pent->SetParams(&ppdim, 1);
-
- * @example Set `pe_player_dynamics`
-    pe_player_dynamics ppdyn;
-    ppdyn.kAirControl = 0.f;
-    ppdyn.kAirResistance = 0.2f;
-    ppdyn.kInertia = 8.f;
-    ppdyn.kInertiaAccel = 0.f;
-    ppdyn.mass = 80.0f;
-    ppdyn.maxClimbAngle = 50.0_degrees.ToDegrees();
-    ppdyn.maxJumpAngle = 50.0_degrees.ToDegrees();
-    ppdyn.minFallAngle = 80.0_degrees.ToDegrees();
-    ppdyn.minSlideAngle = 70.0_degrees.ToDegrees();
-    ppdyn.maxVelGround = 16.f;
-    pent->SetParams(&ppdyn, 1);
  */
 void CSampleActorComponent::Physicalize()
 {
@@ -226,13 +214,17 @@ void CSampleActorComponent::Physicalize()
  *
  * This method configures and initializes the "legs" of our WalkingRigid Entity.
  *
- * @note The "legs" of a WalkingRigid Entity work by using `pe_params_sensors` to cast a ray directly down (-z) from
- * the Entity. This ray is used to determine which Object (if any) this Entity is currently standing on.
+ * The "legs" of this Sample WalkingRigid Component work by using `pe_params_sensors` to cast a ray directly down (-z)
+ * from the Entity to find the ground under the "feet" of this Entity. This ray is used to determine which Object this
+ * Entity is currently standing on (if any).
  *
- * @note Without invoking this method after Physicalization, the Entity will be stuck in a "free-fall" state which will
- * not work as intended. If you are experiencing an issue where `pe_status_living::pGroundCollider` is always `nullptr`
- * in `OnPostStep`, be sure to verify that this method has been invoked after Physicalization and that the `dir`
- * variable in this method contains a negative `z` value.
+ * Without invoking this method after Physicalization, the Entity will be stuck in an eternal "free-fall" state, even
+ * when on the ground, which will not work as expected. If you have an issue where `pe_status_living::pGroundCollider`
+ * is always `nullptr` in `OnPostStep`, be sure to verify that this method has been invoked after Physicalization and
+ * that the `dir` variable in this method contains a negative `z` value (for a standard Actor with "legs").
+ *
+ * @note Ensure that the length of the ray (`dir`) is long enough, which means that the ray ends lower than the Geometry
+ * and ideally starts inside the Geometry. This is so that the Geometry can protect it from going fully under ground.
  *
  * @param immediately | Determines if the operation should occur immediately
  */
